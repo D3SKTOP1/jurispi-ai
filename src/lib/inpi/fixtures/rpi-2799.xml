@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rpi numero="2799" data="2026-07-07">
+  <secao codigo="MARCAS" nome="Marcas">
+    <despacho processo="912345678" codigo="IPAS009" titular="Café Serrano Ltda." titulo="CAFÉ SERRANO">Oposição apresentada por terceiro contra o pedido de registro. O depositante será intimado para manifestação no prazo legal.</despacho>
+    <despacho processo="913456789" codigo="IPAS158" titular="TechNova Sistemas S.A." titulo="AGROSENSE">Concessão de registro. Expedição do certificado de registro de marca após pagamento das retribuições correspondentes.</despacho>
+    <despacho processo="917000042" codigo="IPAS033" titular="Solvercam Sistemas Digitais Ltda." titulo="SOLVERCAM">Publicação de pedido de registro para apresentação de oposição no prazo de 60 (sessenta) dias.</despacho>
+    <despacho processo="917000077" codigo="IPAS047" titular="Bela Moda Fashion Confecções S.A." titulo="BELA MODA FASHION">Exigência de mérito formulada. O depositante deve atender à exigência no prazo legal, sob pena de arquivamento.</despacho>
+    <despacho processo="917000088" codigo="IPAS142" titular="Aurora Cafés Especiais Ltda." titulo="AURORA CAFÉS">Arquivamento definitivo do pedido por falta de atendimento à exigência.</despacho>
+    <despacho processo="917000021" codigo="IPAS024" titular="Vetorprime Tecnologia Ltda." titulo="VETORPRIME">Indeferimento do pedido de registro com fundamento no art. 124, XIX, da LPI, por colidência com registro anterior.</despacho>
+  </secao>
+  <secao codigo="PATENTES" nome="Patentes">
+    <despacho processo="BR1020240012345" codigo="3.1" titular="TechNova Sistemas S.A." titulo="Sistema de irrigação inteligente com sensores IoT">Publicação de exigência técnica. O depositante deve se manifestar no prazo de 90 (noventa) dias contados desta publicação.</despacho>
+    <despacho processo="BR1020230098765" codigo="16.1" titular="AgroTech Brasil S.A." titulo="Sensor de umidade do solo com telemetria">Deferimento do pedido. A concessão fica condicionada ao pagamento da retribuição no prazo legal.</despacho>
+    <despacho processo="BR2020250045678" codigo="2.1" titular="Embalagens Rio Verde Ltda." titulo="Embalagem térmica reutilizável para alimentos">Publicação do pedido de patente conforme art. 30 da LPI.</despacho>
+    <despacho processo="BR1020220054321" codigo="9.2" titular="Instituto Vale Inovação" titulo="Processo de tratamento de efluentes por biofiltragem">Arquivamento do pedido por falta de pagamento da retribuição anual.</despacho>
+  </secao>
+</rpi>

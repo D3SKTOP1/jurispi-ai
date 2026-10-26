@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: jurispi-postgres
+    environment:
+      POSTGRES_USER: jurispi
+      POSTGRES_PASSWORD: jurispi
+      POSTGRES_DB: jurispi
+    ports:
+      - "5432:5432"
+    volumes:
+      - jurispi_pgdata:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: jurispi-redis
+    ports:
+      - "6379:6379"
+
+volumes:
+  jurispi_pgdata:

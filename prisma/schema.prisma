@@ -1,0 +1,870 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  directUrl  = env("DIRECT_URL")
+  extensions = [vector, pg_trgm, unaccent]
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum CaseType {
+  TRADEMARK
+  PATENT
+  INDUSTRIAL_DESIGN
+  SOFTWARE
+  OTHER
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  UNKNOWN
+}
+
+enum DocumentSourceType {
+  USER_UPLOAD
+  INPI_OPEN_DATA
+  RPI
+  LAW
+  MANUAL
+  INTERNAL
+}
+
+enum DocumentStatus {
+  UPLOADED
+  PROCESSING
+  READY
+  ERROR
+}
+
+enum AiRole {
+  USER
+  ASSISTANT
+  SYSTEM
+}
+
+enum GeneratedDocumentType {
+  PRELIMINARY_OPINION
+  PATENT_ANALYSIS
+  OFFICE_ACTION_RESPONSE
+  OPPOSITION_DRAFT
+  APPEAL_DRAFT
+  CLIENT_REPORT
+  EMAIL
+  OTHER
+}
+
+enum GeneratedDocumentStatus {
+  DRAFT
+  REVIEWED
+  FINAL
+}
+
+enum AlertSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+enum AlertStatus {
+  OPEN
+  RESOLVED
+  DISMISSED
+}
+
+enum DeadlineStatus {
+  PENDING
+  DONE
+  OVERDUE
+}
+
+// ---------------------------------------------------------------------------
+// Identidade e multi-tenant
+// ---------------------------------------------------------------------------
+
+model User {
+  id           String    @id @default(cuid())
+  name         String
+  email        String    @unique
+  passwordHash String
+  /** Quando o tutorial de boas-vindas foi concluído (null = ainda não viu). */
+  onboardedAt  DateTime?
+  /** Último login com sucesso (painel de administração da plataforma). */
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  memberships   OrganizationMember[]
+  conversations AiConversation[]
+  auditLogs     AuditLog[]
+  passwordResetTokens PasswordResetToken[]
+}
+
+/** Lead do site público (pedido de demonstração) — global, sem organização. */
+model Lead {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  phone     String?
+  firmName  String?
+  message   String?
+  /** Origem do lead (ex.: "landing"). */
+  source    String   @default("landing")
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+/** Contador de rate limit (janela fixa) — funciona entre instâncias serverless. */
+model RateLimit {
+  key         String
+  windowStart DateTime
+  count       Int      @default(1)
+
+  @@id([key, windowStart])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  /** SHA-256 do token; o token em claro só vai no link do e-mail. */
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members             OrganizationMember[]
+  clients             Client[]
+  cases               IndustrialPropertyCase[]
+  documents           Document[]
+  documentChunks      DocumentChunk[]
+  conversations       AiConversation[]
+  generatedDocuments  GeneratedDocument[]
+  alerts              Alert[]
+  deadlines           Deadline[]
+  auditLogs           AuditLog[]
+  monitoredProcesses  MonitoredProcess[]
+  einpiCredential     InpiEinpiCredential?
+  grus                InpiGru[]
+}
+
+model OrganizationMember {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String
+  role           String   @default("MEMBER")
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+  @@index([userId])
+}
+
+// ---------------------------------------------------------------------------
+// Clientes e processos de PI
+// ---------------------------------------------------------------------------
+
+model Client {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  documentNumber String?
+  email          String?
+  phone          String?
+  notes          String?  @db.Text
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization       Organization             @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  cases              IndustrialPropertyCase[]
+  documents          Document[]
+  monitoredProcesses MonitoredProcess[]
+
+  @@index([organizationId])
+}
+
+model IndustrialPropertyCase {
+  id             String    @id @default(cuid())
+  organizationId String
+  clientId       String?
+  type           CaseType
+  title          String
+  processNumber  String?
+  status         String    @default("EM_ANDAMENTO")
+  riskLevel      RiskLevel @default(UNKNOWN)
+  summary        String?   @db.Text
+  nextStep       String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  client       Client?      @relation(fields: [clientId], references: [id], onDelete: SetNull)
+
+  trademark          TrademarkCase?
+  patent             PatentCase?
+  industrialDesign   IndustrialDesignCase?
+  software           SoftwareRegistrationCase?
+  monitoredProcesses MonitoredProcess[]
+  documents          Document[]
+  conversations      AiConversation[]
+  generatedDocuments GeneratedDocument[]
+  alerts             Alert[]
+  deadlines          Deadline[]
+
+  @@index([organizationId])
+  @@index([organizationId, type])
+  @@index([clientId])
+}
+
+model TrademarkCase {
+  id               String    @id @default(cuid())
+  caseId           String    @unique
+  brandName        String
+  niceClasses      String[]
+  presentationType String?
+  nature           String?
+  holderName       String?
+  applicationDate  DateTime?
+  currentStatus    String?
+  collisionRisk    RiskLevel @default(UNKNOWN)
+  aiAnalysis       String?   @db.Text
+
+  case IndustrialPropertyCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+}
+
+model PatentCase {
+  id              String    @id @default(cuid())
+  caseId          String    @unique
+  title           String
+  abstract        String?   @db.Text
+  ipcClasses      String[]
+  inventors       String[]
+  applicants      String[]
+  filingDate      DateTime?
+  publicationDate DateTime?
+  grantDate       DateTime?
+  expirationDate  DateTime?
+  currentStatus   String?
+  aiAnalysis      String?   @db.Text
+
+  case IndustrialPropertyCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+}
+
+model IndustrialDesignCase {
+  id             String    @id @default(cuid())
+  caseId         String    @unique
+  title          String
+  locarnoClasses String[]
+  authors        String[]
+  filingDate     DateTime?
+  currentStatus  String?
+  aiAnalysis     String?   @db.Text
+
+  case IndustrialPropertyCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+}
+
+model SoftwareRegistrationCase {
+  id                 String    @id @default(cuid())
+  caseId             String    @unique
+  programTitle       String
+  programmingLanguage String?
+  fieldOfApplication String?
+  filingDate         DateTime?
+  currentStatus      String?
+  aiAnalysis         String?   @db.Text
+
+  case IndustrialPropertyCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+}
+
+// ---------------------------------------------------------------------------
+// GLOBAL INPI DATA — dados públicos importados do INPI/RPI.
+// Compartilhados por toda a plataforma; NUNCA duplicados por organização.
+// Staging: InpiSource → InpiImportJob → InpiRawFile → InpiRawRecord.
+// Normalizado: InpiTrademark*, InpiPatent*, RpiIssue/RpiSection/RpiDispatch.
+// ---------------------------------------------------------------------------
+
+model InpiSource {
+  id          String   @id @default(cuid())
+  name        String
+  type        String
+  baseUrl     String?
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  importJobs InpiImportJob[]
+}
+
+model InpiImportJob {
+  id               String    @id @default(cuid())
+  sourceId         String?
+  sourceType       String
+  entityType       String
+  status           String
+  fileUrl          String?
+  fileName         String?
+  checksum         String?
+  startedAt        DateTime?
+  finishedAt       DateTime?
+  totalRecords     Int       @default(0)
+  processedRecords Int       @default(0)
+  failedRecords    Int       @default(0)
+  errorMessage     String?
+  metadata         Json?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  source   InpiSource?   @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+  rawFiles InpiRawFile[]
+
+  @@index([status])
+  @@index([sourceType, entityType])
+}
+
+model InpiRawFile {
+  id          String    @id @default(cuid())
+  importJobId String
+  sourceType  String
+  entityType  String
+  originalUrl String?
+  fileName    String
+  filePath    String
+  mimeType    String?
+  checksum    String
+  sizeBytes   Int?
+  rpiNumber   String?
+  rpiDate     DateTime?
+  section     String?
+  createdAt   DateTime  @default(now())
+
+  importJob InpiImportJob   @relation(fields: [importJobId], references: [id], onDelete: Cascade)
+  records   InpiRawRecord[]
+
+  @@unique([checksum])
+  @@index([importJobId])
+}
+
+model InpiRawRecord {
+  id           String   @id @default(cuid())
+  rawFileId    String
+  entityType   String
+  externalId   String?
+  rawData      Json
+  parsedText   String?  @db.Text
+  status       String   @default("PENDING")
+  errorMessage String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  rawFile InpiRawFile @relation(fields: [rawFileId], references: [id], onDelete: Cascade)
+
+  @@index([rawFileId, status])
+  @@index([entityType, status])
+}
+
+model InpiTrademark {
+  id               String    @id @default(cuid())
+  processNumber    String    @unique
+  brandName        String
+  normalizedName   String
+  holderName       String?
+  holderDocument   String?
+  presentation     String?
+  nature           String?
+  status           String?
+  applicationDate  DateTime?
+  registrationDate DateTime?
+  expirationDate   DateTime?
+  source           String
+  sourceUpdatedAt  DateTime?
+  rawData          Json?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  classes    InpiTrademarkClass[]
+  applicants InpiTrademarkApplicant[]
+  dispatches InpiTrademarkDispatch[]
+
+  @@index([normalizedName])
+  @@index([holderName])
+  @@index([status])
+}
+
+model InpiTrademarkClass {
+  id            String   @id @default(cuid())
+  trademarkId   String
+  niceClass     String
+  specification String?  @db.Text
+  createdAt     DateTime @default(now())
+
+  trademark InpiTrademark @relation(fields: [trademarkId], references: [id], onDelete: Cascade)
+
+  @@index([niceClass])
+  @@index([trademarkId])
+}
+
+model InpiTrademarkApplicant {
+  id          String   @id @default(cuid())
+  trademarkId String
+  name        String
+  document    String?
+  country     String?
+  createdAt   DateTime @default(now())
+
+  trademark InpiTrademark @relation(fields: [trademarkId], references: [id], onDelete: Cascade)
+
+  @@index([trademarkId])
+}
+
+model InpiTrademarkDispatch {
+  id            String    @id @default(cuid())
+  trademarkId   String?
+  processNumber String
+  rpiNumber     String?
+  rpiDate       DateTime?
+  dispatchCode  String?
+  dispatchText  String    @db.Text
+  section       String?
+  sourceFileId  String?
+  createdAt     DateTime  @default(now())
+
+  trademark InpiTrademark? @relation(fields: [trademarkId], references: [id], onDelete: SetNull)
+
+  @@index([processNumber])
+  @@index([rpiNumber])
+  @@index([dispatchCode])
+}
+
+model InpiPatent {
+  id              String    @id @default(cuid())
+  processNumber   String    @unique
+  title           String
+  normalizedTitle String?
+  abstractText    String?   @db.Text
+  applicationDate DateTime?
+  publicationDate DateTime?
+  grantDate       DateTime?
+  expirationDate  DateTime?
+  status          String?
+  source          String
+  sourceUpdatedAt DateTime?
+  rawData         Json?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  ipcClasses InpiPatentIpcClass[]
+  applicants InpiPatentApplicant[]
+  inventors  InpiPatentInventor[]
+  dispatches InpiPatentDispatch[]
+
+  @@index([title])
+  @@index([status])
+}
+
+model InpiPatentIpcClass {
+  id        String   @id @default(cuid())
+  patentId  String
+  ipcCode   String
+  createdAt DateTime @default(now())
+
+  patent InpiPatent @relation(fields: [patentId], references: [id], onDelete: Cascade)
+
+  @@index([ipcCode])
+  @@index([patentId])
+}
+
+model InpiPatentApplicant {
+  id        String   @id @default(cuid())
+  patentId  String
+  name      String
+  document  String?
+  country   String?
+  createdAt DateTime @default(now())
+
+  patent InpiPatent @relation(fields: [patentId], references: [id], onDelete: Cascade)
+
+  @@index([patentId])
+}
+
+model InpiPatentInventor {
+  id        String   @id @default(cuid())
+  patentId  String
+  name      String
+  country   String?
+  createdAt DateTime @default(now())
+
+  patent InpiPatent @relation(fields: [patentId], references: [id], onDelete: Cascade)
+
+  @@index([patentId])
+}
+
+model InpiPatentDispatch {
+  id            String    @id @default(cuid())
+  patentId      String?
+  processNumber String
+  rpiNumber     String?
+  rpiDate       DateTime?
+  dispatchCode  String?
+  dispatchText  String    @db.Text
+  section       String?
+  sourceFileId  String?
+  createdAt     DateTime  @default(now())
+
+  patent InpiPatent? @relation(fields: [patentId], references: [id], onDelete: SetNull)
+
+  @@index([processNumber])
+  @@index([rpiNumber])
+  @@index([dispatchCode])
+}
+
+model RpiIssue {
+  id          String   @id @default(cuid())
+  number      String   @unique
+  publishedAt DateTime
+  sourceUrl   String?
+  status      String   @default("DISCOVERED")
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  sections RpiSection[]
+}
+
+model RpiSection {
+  id          String   @id @default(cuid())
+  rpiIssueId  String
+  sectionCode String
+  name        String
+  pdfUrl      String?
+  xmlUrl      String?
+  txtUrl      String?
+  status      String   @default("PENDING")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  rpiIssue   RpiIssue      @relation(fields: [rpiIssueId], references: [id], onDelete: Cascade)
+  dispatches RpiDispatch[]
+
+  @@index([sectionCode])
+  @@index([rpiIssueId])
+}
+
+model RpiDispatch {
+  id            String   @id @default(cuid())
+  rpiSectionId  String
+  processNumber String
+  dispatchCode  String?
+  dispatchText  String   @db.Text
+  holderName    String?
+  title         String?
+  rawData       Json?
+  createdAt     DateTime @default(now())
+
+  rpiSection RpiSection @relation(fields: [rpiSectionId], references: [id], onDelete: Cascade)
+
+  @@index([processNumber])
+  @@index([dispatchCode])
+}
+
+model InpiSyncLog {
+  id        String   @id @default(cuid())
+  jobId     String?
+  level     String
+  message   String   @db.Text
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([jobId])
+  @@index([level])
+}
+
+// ---------------------------------------------------------------------------
+// TENANT DATA — monitoramento de processos (isolado por organização)
+// ---------------------------------------------------------------------------
+
+model MonitoredProcess {
+  id             String    @id @default(cuid())
+  organizationId String
+  clientId       String?
+  caseId         String?
+  processNumber  String
+  title          String?
+  type           String
+  source         String    @default("INPI")
+  isActive       Boolean   @default(true)
+  lastCheckedAt  DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  organization Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  client       Client?                 @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  case         IndustrialPropertyCase? @relation(fields: [caseId], references: [id], onDelete: SetNull)
+
+  @@unique([organizationId, processNumber])
+  @@index([organizationId])
+  @@index([processNumber])
+}
+
+// ---------------------------------------------------------------------------
+// GRU / e-INPI (tenant-specific)
+// ---------------------------------------------------------------------------
+
+/**
+ * Credencial e-INPI do escritório para emissão/consulta de GRU.
+ * A senha é gravada SEMPRE cifrada (AES-256-GCM, ver credential-vault).
+ * Uma credencial por organização.
+ */
+model InpiEinpiCredential {
+  id             String    @id @default(cuid())
+  organizationId String    @unique
+  /** Login e-INPI (CPF/CNPJ ou usuário). Cifrado. */
+  loginEncrypted String    @db.Text
+  /** Máscara para exibição segura na UI (nunca a senha). */
+  loginMask      String
+  /** Senha e-INPI. Cifrada. Nunca exposta em claro nem em logs. */
+  senhaEncrypted String    @db.Text
+  /** Última verificação de login bem-sucedida (health check). */
+  lastVerifiedAt DateTime?
+  /** Resultado da última verificação: OK | INVALID | UNAVAILABLE */
+  lastStatus     String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  grus         InpiGru[]
+}
+
+/** Registro de GRUs emitidas/consultadas pelo escritório. */
+model InpiGru {
+  id             String    @id @default(cuid())
+  organizationId String
+  credentialId   String?
+  /** Nosso número / número da GRU no INPI. */
+  gruNumber      String?
+  /** Código do serviço INPI (tabela de retribuições). */
+  serviceCode    String?
+  processNumber  String?
+  description    String?
+  amountCents    Int?
+  status         String    @default("ISSUED")
+  dueDate        DateTime?
+  paidAt         DateTime?
+  /** Caminho/URL do PDF do boleto quando emitido. */
+  pdfPath        String?
+  /** Linha digitável/código de barras do boleto (para copiar e pagar). */
+  barcode        String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  organization Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  credential   InpiEinpiCredential? @relation(fields: [credentialId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([gruNumber])
+}
+
+// ---------------------------------------------------------------------------
+// Documentos e chunks (RAG)
+// ---------------------------------------------------------------------------
+
+model Document {
+  id             String             @id @default(cuid())
+  organizationId String
+  clientId       String?
+  caseId         String?
+  title          String
+  fileName       String
+  fileUrl        String
+  mimeType       String
+  sizeBytes      Int                @default(0)
+  sourceType     DocumentSourceType @default(USER_UPLOAD)
+  status         DocumentStatus     @default(UPLOADED)
+  errorMessage   String?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  organization Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  client       Client?                 @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  case         IndustrialPropertyCase? @relation(fields: [caseId], references: [id], onDelete: SetNull)
+  chunks       DocumentChunk[]
+  citations    AiCitation[]
+
+  @@index([organizationId])
+  @@index([caseId])
+  @@index([clientId])
+}
+
+model DocumentChunk {
+  id             String                       @id @default(cuid())
+  documentId     String
+  organizationId String
+  content        String                       @db.Text
+  metadata       Json?
+  embedding      Unsupported("vector(1536)")?
+  pageNumber     Int?
+  chunkIndex     Int
+  createdAt      DateTime                     @default(now())
+
+  document     Document     @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  citations    AiCitation[]
+
+  @@unique([documentId, chunkIndex])
+  @@index([organizationId])
+}
+
+// ---------------------------------------------------------------------------
+// IA: conversas, mensagens e citacoes
+// ---------------------------------------------------------------------------
+
+model AiConversation {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String
+  caseId         String?
+  title          String   @default("Nova conversa")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  case         IndustrialPropertyCase? @relation(fields: [caseId], references: [id], onDelete: SetNull)
+  messages     AiMessage[]
+
+  @@index([organizationId])
+  @@index([userId])
+}
+
+model AiMessage {
+  id             String   @id @default(cuid())
+  conversationId String
+  role           AiRole
+  content        String   @db.Text
+  metadata       Json?
+  createdAt      DateTime @default(now())
+
+  conversation AiConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  citations    AiCitation[]
+
+  @@index([conversationId])
+}
+
+model AiCitation {
+  id          String   @id @default(cuid())
+  messageId   String
+  documentId  String?
+  chunkId     String?
+  quote       String   @db.Text
+  sourceTitle String
+  pageNumber  Int?
+  createdAt   DateTime @default(now())
+
+  message  AiMessage      @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  document Document?      @relation(fields: [documentId], references: [id], onDelete: SetNull)
+  chunk    DocumentChunk? @relation(fields: [chunkId], references: [id], onDelete: SetNull)
+
+  @@index([messageId])
+}
+
+// ---------------------------------------------------------------------------
+// Documentos gerados, alertas, prazos e auditoria
+// ---------------------------------------------------------------------------
+
+model GeneratedDocument {
+  id             String                  @id @default(cuid())
+  organizationId String
+  caseId         String?
+  type           GeneratedDocumentType
+  title          String
+  content        String                  @db.Text
+  status         GeneratedDocumentStatus @default(DRAFT)
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+
+  organization Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  case         IndustrialPropertyCase? @relation(fields: [caseId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([caseId])
+}
+
+model Alert {
+  id             String        @id @default(cuid())
+  organizationId String
+  caseId         String?
+  title          String
+  description    String?       @db.Text
+  severity       AlertSeverity @default(INFO)
+  status         AlertStatus   @default(OPEN)
+  dueDate        DateTime?
+  metadata       Json?
+  createdAt      DateTime      @default(now())
+
+  organization Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  case         IndustrialPropertyCase? @relation(fields: [caseId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, status])
+}
+
+model Deadline {
+  id             String         @id @default(cuid())
+  organizationId String
+  caseId         String?
+  title          String
+  description    String?        @db.Text
+  dueDate        DateTime
+  status         DeadlineStatus @default(PENDING)
+  /** Origem do prazo: MANUAL (usuário) ou RPI (gerado de despacho). */
+  source         String         @default("MANUAL")
+  /** Processo INPI relacionado, quando o prazo vem de um despacho. */
+  processNumber  String?
+  /** Dados de origem (dedupeKey, código de despacho, RPI, fundamento). */
+  metadata       Json?
+  createdAt      DateTime       @default(now())
+
+  organization Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  case         IndustrialPropertyCase? @relation(fields: [caseId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, status])
+  @@index([organizationId, dueDate])
+  @@index([organizationId, source])
+}
+
+model AuditLog {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String?
+  action         String
+  entityType     String
+  entityId       String?
+  metadata       Json?
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, createdAt])
+}

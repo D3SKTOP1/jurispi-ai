@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="14" fill="hsl(222,45%,10%)"/>
+  <rect x="1.5" y="1.5" width="61" height="61" rx="12.5" fill="none" stroke="hsl(41,55%,52%)" stroke-opacity="0.35" stroke-width="3"/>
+  <g stroke="hsl(41,55%,55%)" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <!-- haste e base -->
+    <path d="M32 14v34"/>
+    <path d="M24 50h16"/>
+    <!-- travessão -->
+    <path d="M16 22h32"/>
+    <!-- prato esquerdo -->
+    <path d="M16 22l-6 12"/>
+    <path d="M16 22l6 12"/>
+    <path d="M10 34a8 8 0 0 0 12 0" fill="none"/>
+    <!-- prato direito -->
+    <path d="M48 22l-6 12"/>
+    <path d="M48 22l6 12"/>
+    <path d="M42 34a8 8 0 0 0 12 0" fill="none"/>
+  </g>
+</svg>

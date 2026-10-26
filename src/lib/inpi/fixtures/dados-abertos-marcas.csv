@@ -1,0 +1,11 @@
+numero_processo;marca;titular;documento_titular;apresentacao;natureza;situacao;data_deposito;data_registro;classes_nice
+917000042;SOLVERCAM;Solvercam Sistemas Digitais Ltda.;11.222.333/0001-44;Nominativa;Serviço;Aguardando exame de mérito;15/03/2026;;42
+917000043;SOLVERTECH;Solvertech Consultoria em TI Ltda.;22.333.444/0001-55;Mista;Serviço;Registro vigente;10/01/2023;20/08/2024;42
+917000044;SOLVER CAM SOLUTIONS;Solver Cam Solutions Informática ME;33.444.555/0001-66;Nominativa;Serviço;Aguardando exame de mérito;02/05/2026;;09|42
+917000055;CAFE SERRA;Cafés Serra do Sul Ltda.;44.555.666/0001-77;Mista;Produto;Registro vigente;12/06/2019;03/11/2020;30
+917000077;BELA MODA FASHION;Bela Moda Fashion Confecções S.A.;55.666.777/0001-88;Mista;Produto;Registro vigente;25/02/2018;14/09/2019;25
+917000078;BELLAMODAS;Bellamodas Comércio de Roupas ME;66.777.888/0001-99;Nominativa;Produto;Aguardando exame de mérito;30/10/2025;;25
+917000021;VETORPRIME;Vetorprime Tecnologia Ltda.;77.888.999/0001-00;Nominativa;Serviço;Indeferido;05/04/2024;;42
+917000066;AGROSENSO;Agrosenso Equipamentos Agrícolas Ltda.;88.999.000/0001-11;Mista;Produto;Registro vigente;18/07/2021;22/03/2023;09|42
+917000088;AURORA CAFES;Aurora Cafés Especiais Ltda.;99.000.111/0001-22;Mista;Produto;Arquivado definitivamente;09/09/2022;;30
+917000099;NUVEMLEGAL;NuvemLegal Software Jurídico S.A.;10.111.222/0001-33;Nominativa;Serviço;Registro vigente;27/11/2020;15/06/2022;42|45

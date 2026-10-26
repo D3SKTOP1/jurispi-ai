@@ -1,0 +1,148 @@
+ 
+
+
+
+
+
+
+<html>
+    <head>
+        <title>INPI</title>
+        <meta content="text/html; charset=ISO-8859-1" http-equiv=Content-Type>
+        <link href="/pePI/jsp/css/inpi.css" rel=stylesheet type=text/css>
+        <script type="text/javascript" src="../jsp/funcoes/meusPedidos.js"></script>
+    </head>
+    <body bgColor="#ffffff">
+    <form id="F_Marca" name="F_Marca" method="post" action="/pePI/servlet/MarcasServletController">
+        <div id="mainContainer">
+
+<div id="principal">
+<br/>
+<div id="barra-brasil" style="background:#7F7F7F; height: 20px; padding:0 0 0 10px;display:block;">
+	<ul id="menu-barra-temp" style="list-style:none;">
+	<li style="display:inline; float:left;padding-right:10px; margin-right:10px; borderright:1px solid #EDEDED">
+		<a href="http://brasil.gov.br" style="font-family:sans,sans-serif; text- Portal Padrão Barra de Identidade Visual do Governo Federal na Internet - APLICAÇÃO right:1px solid #EDEDED">
+		<a href="http://brasil.gov.br" style="font-family:sans,sans-serif; text- decoration:none; color:white;">Portal do Governo Brasileiro</a>
+		</li>
+		<li>
+			<a style="font-family:sans,sans-serif; text-decoration:none; color:white;" 
+			href="http://epwg.governoeletronico.gov.br/barra/atualize.html">Atualize sua Barra de Governo
+			</a>
+		</li>
+	</ul>
+</div>
+<div id="logo">
+	<a id="portal-logo" href="http://www.inpi.gov.br" title="O portal do Brasil">
+		<span id="portal-title-1">Instituto Nacional da</span>
+		<span id="portal-title" class="corto">Propriedade Industrial</span>
+		<span id="portal-description">Ministério do Desenvolvimento, Indústria, Comércio e Serviços</span>
+	</a>
+</div>
+<script src="/pePI/jsp/funcoes/barra.js" type="text/javascript"></script>
+
+
+        
+        <input type= "hidden" name="Action" value="cadastroProcesso">
+        <input type= "hidden" name="NumPedido" value="">         
+
+        <table width="100%" align="center" border="0" cellpadding="0" cellspacing="0">
+            <tr>
+                <td colspan="2" align="center"><font class="titulo">Consulta à Base de Dados do INPI</font></td>
+            </tr>
+        </table>
+        <table width="780px" align="center" border="0" cellpadding="3" cellspacing="0">
+            <tr>
+                <td colspan="2" align="left">
+                    <font class="normal">
+                        <div align="right">
+	                    [ <a href="../jsp/Base_pesquisa.jsp" class="titulo">Início</a> |
+	                    <a href="../jsp/Ajuda.jsp" class="normal">Ajuda?</a> ]
+                        </div>
+                    </font>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="2" align="left">
+                    <font class="normal">
+                        » Consultar por: 
+                            <a class="titulo" href="../jsp/marcas/Pesquisa_num_processo.jsp">Pesquisa Básica</a> | 
+                            <a class="titulo" href="../jsp/marcas/Pesquisa_classe_basica.jsp">Marca</a> | 
+                            <a class = "titulo" href = "../jsp/marcas/Pesquisa_titular.jsp">Titular </a> | 
+                            <a class = "titulo" href = "../jsp/marcas/Pesquisa_figura.jsp">Cód. Figura</a> ]
+
+                    </font>
+                </td>
+            </tr>
+            <tr>
+		  		<td colspan="2">
+	   	   			<hr class="hr">
+	    		</td>
+			</tr>
+        </table>
+         <table width="780px" align="center" border="0" cellpadding="3" cellspacing="0">
+            <tr>
+               <td colspan="2" align="left">
+                  <div align="left">
+                    <b>RESULTADO DA PESQUISA</b> (11/07/2026 às 18:22:06)
+                   </div>
+                </td>
+                <td colspan="2" align="right">
+	              <font class="normal">
+	                  
+		            </font>
+	           </td>
+	          </tr>
+	          <tr> 
+	           <td>
+	           
+                           	 
+                           	 <B>Nº da GRU: </B>&nbsp; 29409161715featest <BR>
+                           	 
+                           	 
+	           </td>
+               </tr>
+        </table>
+
+        <table width="700" align="center" border="0" cellpadding="2" cellspacing="2">
+            <tr>
+                <td >
+                    - Nenhum resultado foi encontrado para a sua pesquisa. Para efetuar outra pesquisa, pressione o botão de VOLTAR.
+                </td>
+            </tr>
+            <tr>
+                <td >
+                    <b>AVISO: </b>
+                    Depois de fazer uma busca no banco de dados do INPI, ainda que os resultados possam parecer satisfatórios, 
+                    não se deve concluir  que a marca poderá ser registrada. O INPI no momento do exame do pedido de registro 
+                    realizará nova busca que será submetida ao exame técnico que decidirá a respeito da registrabilidade do sinal.
+                </td>
+            </tr>
+
+            <tr>
+                <td align="center" colSpan=6>
+                    <FONT class=normal>
+                        &nbsp;<BR>Dados atualizados  até 
+                        <b>07/07/2026</b>
+                        - Nº da Revista:
+                        <b></b>
+                    </FONT>
+                </td>
+            </tr>
+
+        </table>
+    </form>
+    </body>
+    
+	<br/>
+      
+	<div id="bottom_principal"></div>
+	<div id="footer">
+		<div id="texto_footer">
+			<p>Rua Mayrink Veiga, 9 - Centro - RJ - CEP: 20090-910</p>
+		</div>
+		<div id="logo_ouvidoria">
+			<a href="http://faleconosco.inpi.gov.br/" target="blank"><img src="/pePI/jsp/imagens/faleconosco.png" border="0" alt="Fale Conosco" onmouseout="this.src='/pePI/jsp/imagens/faleconosco.png';"
+				title="Fale Conosco" onmouseover="this.src='/pePI/jsp/imagens/faleconosco.png';" /> </a>
+		</div>
+	</div>
+</html>
